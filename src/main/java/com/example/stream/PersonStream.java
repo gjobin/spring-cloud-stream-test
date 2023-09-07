@@ -2,6 +2,7 @@ package com.example.stream;
 
 import com.example.model.Person;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
 
@@ -11,6 +12,7 @@ import java.util.function.Supplier;
 
 @Service
 @Slf4j
+@EnableAutoConfiguration
 public class PersonStream {
 
     @Bean
