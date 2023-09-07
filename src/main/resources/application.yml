@@ -9,26 +9,7 @@ spring:
 
     stream:
       bindings:
-        source-out-0:
-          destination: thasource
         uppercase-in-0:
-          destination: thasource
-          group: testgroup
+          destination: source-out-0
         uppercase-out-0:
-          destination: uppercased
-        sink-in-0:
-          destination: uppercased
-          group: testgroup
-      kafka:
-        binder:
-          brokers: localhost:9092
-          producer-properties:
-            compression.type: zstd
-            key.serializer: org.apache.kafka.common.serialization.StringSerializer
-            max.request.size: 15728640
-          consumer-properties:
-            key.deserializer: org.apache.kafka.common.serialization.StringDeserializer
-        bindings:
-          uppercase-out-0:
-            producer:
-              messageKeyExpression: headers['kafka_receivedMessageKey']
+          destination: sink-in-0
