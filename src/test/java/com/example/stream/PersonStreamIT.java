@@ -2,69 +2,70 @@ package com.example.stream;
 
 import com.example.Application;
 import com.example.model.Person;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeEach;
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.cloud.stream.binder.test.InputDestination;
-import org.springframework.cloud.stream.binder.test.OutputDestination;
-import org.springframework.cloud.stream.binder.test.TestChannelBinderConfiguration;
-import org.springframework.context.annotation.Import;
+import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.support.serializer.JsonDeserializer;
+import org.springframework.kafka.test.EmbeddedKafkaBroker;
 import org.springframework.kafka.test.context.EmbeddedKafka;
-import org.springframework.messaging.Message;
-import org.springframework.messaging.MessageHeaders;
-import org.springframework.messaging.support.GenericMessage;
+import org.springframework.kafka.test.utils.KafkaTestUtils;
 
-import java.io.IOException;
-import java.util.Collections;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @SpringBootTest(classes = Application.class)
-@Import({TestChannelBinderConfiguration.class})
-@EmbeddedKafka
+@EmbeddedKafka(topics = {"source-out-0", "sink-in-0"})
 class PersonStreamIT {
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
-
     @Autowired
-    private InputDestination input;
-
-    @Autowired
-    private OutputDestination output;
-
-    @BeforeEach
-    public void beforeEach(){
-        output.clear();
-    }
+    private EmbeddedKafkaBroker embeddedKafkaBroker;
 
     @Test
-    void producerTest() {
-        Message<Person> message = receiveMessage(Person.class, "source-out-0");
-        assertThat(message.getPayload()).isEqualTo(Person.builder().firstname("fn").lastname("ln").build());
-    }
+    public void e2e() {
+        Map<String, Object> configs = new HashMap<>(KafkaTestUtils.consumerProps("test", "false", embeddedKafkaBroker));
+        Consumer<String, Person> consumer = new DefaultKafkaConsumerFactory<>(configs, new StringDeserializer(), new JsonDeserializer<Person>()).createConsumer();
+        consumer.subscribe(List.of("sink-in-0"));
+        consumer.poll(Duration.ZERO);
 
-    @Test
-    void functionTest() {
-        Message<Person> sendMessage = new GenericMessage<>(Person.builder().firstname("firstname").lastname("lastname").build(), new MessageHeaders(Collections.emptyMap()));
-        input.send(sendMessage, "source-out-0");
+        ConsumerRecord<String, Person> record = KafkaTestUtils.getSingleRecord(consumer, "sink-in-0", Duration.ofSeconds(5));
+        Assertions.assertThat(record.value()).isEqualTo(Person.builder().firstname("fn").lastname("LN").build());
 
-        Message<Person> message = receiveMessage(Person.class, "sink-in-0");
-        assertThat(message.getPayload()).isEqualTo(Person.builder().firstname("firstname").lastname("LASTNAME").build());
-    }
-
-    private <T> Message<T> receiveMessage(Class<T> clazz, String bindingName) {
-        Message<byte[]> receivedMessage = output.receive(1000, bindingName);
-        assertThat(receivedMessage).isNotNull();
-        return new GenericMessage<>(deserializePayload(clazz, receivedMessage), receivedMessage.getHeaders());
-    }
-
-    private <T> T deserializePayload(Class<T> clazz, Message<byte[]> m) {
-        try {
-            return objectMapper.readValue(m.getPayload(), clazz);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        consumer.close();
     }
 }
+
+/*
+Payload and Headers when running the app vs running the test
+
+Running App
+-----------
+Person(firstname=fn, lastname=LN)
+deliveryAttempt : 1
+kafka_timestampType : CREATE_TIME
+kafka_receivedTopic : sink-in-0
+kafka_offset : 46
+scst_nativeHeadersPresent : true
+kafka_consumer : org.apache.kafka.clients.consumer.KafkaConsumer@2994db0
+source-type : kafka
+id : 97a186be-5fcb-cc47-26a1-46b9895f6b32
+kafka_receivedPartitionId : 0
+contentType : application/json
+kafka_receivedTimestamp : 1694174130515
+kafka_groupId : anonymous.754c77d9-b7a7-4221-9132-34b5c347e299
+timestamp : 1694174130552
+
+
+Running Test
+------------
+Person(firstname=fn, lastname=LN)
+source-type : kafka
+id : 420355ec-2875-92da-cd83-d0d577142ec3
+contentType : application/json
+timestamp : 1694122858406
+ */

@@ -4,6 +4,7 @@ import com.example.model.Person;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.messaging.Message;
 import org.springframework.stereotype.Service;
 
 import java.util.function.Consumer;
@@ -32,7 +33,10 @@ public class PersonStream {
     }
 
     @Bean
-    public Consumer<Person> sink() {
-        return p -> log.info(p.toString());
+    public Consumer<Message<Person>> sink() {
+        return m -> {
+            log.info(m.getPayload().toString());
+            m.getHeaders().forEach((key, value) -> log.info("{} : {}", key, value.toString()));
+        };
     }
 }
