@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Service;
 
+import java.util.StringJoiner;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -35,9 +36,11 @@ public class PersonStream {
     @Bean
     public Consumer<Message<Person>> sink() {
         return m -> {
-            log.info("------ Consumed Record ------");
-            log.info(m.getPayload().toString());
-            m.getHeaders().forEach((key, value) -> log.info("{} : {}", key, value.toString()));
+            StringJoiner joiner = new StringJoiner("\n");
+            joiner.add("\n------ Consumed Record ------");
+            joiner.add(m.getPayload().toString());
+            m.getHeaders().forEach((key, value) -> joiner.add(key + " : " + value));
+            log.info(joiner.toString());
         };
     }
 }

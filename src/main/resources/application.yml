@@ -13,18 +13,7 @@ spring:
           destination: source-out-0
         uppercase-out-0:
           destination: sink-in-0
+      default-binder: kafka
       kafka:
         binder:
           brokers: localhost:9092
-
----
-spring:
-  config:
-    activate:
-      on-profile: test
-
-  cloud:
-    stream:
-      kafka:
-        binder:
-          brokers: ${spring.embedded.kafka.brokers}

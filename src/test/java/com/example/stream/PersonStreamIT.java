@@ -5,6 +5,7 @@ import com.example.model.Person;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -48,11 +49,11 @@ class PersonStreamIT {
 
         //Assert message
         Map<String, Object> consumerConfigs = new HashMap<>(KafkaTestUtils.consumerProps("test", "false", embeddedKafkaBroker));
-        try (JsonDeserializer<Person> jsonDeserializer = new JsonDeserializer<Person>().trustedPackages("*");
+        try (JsonDeserializer<Person> jsonDeserializer = new JsonDeserializer<Person>().trustedPackages("*").copyWithType(Person.class);
              Consumer<String, Person> consumer = new DefaultKafkaConsumerFactory<>(consumerConfigs, new StringDeserializer(), jsonDeserializer).createConsumer()) {
             consumer.subscribe(List.of("source-out-0"));
-            ConsumerRecord<String, Person> record = KafkaTestUtils.getSingleRecord(consumer, "source-out-0", Duration.ofSeconds(2));
-            Assertions.assertThat(record.value()).isEqualTo(Person.builder().firstname("firstname1").lastname("lastname1").build());
+            ConsumerRecords<String, Person> record = KafkaTestUtils.getRecords(consumer);
+            Assertions.assertThat(record.records("source-out-0")).map(ConsumerRecord::value).contains(Person.builder().firstname("firstname1").lastname("lastname1").build());
         }
     }
 
@@ -60,11 +61,23 @@ class PersonStreamIT {
     public void testAppProducer() {
         //Assert message
         Map<String, Object> consumerConfigs = new HashMap<>(KafkaTestUtils.consumerProps("test", "false", embeddedKafkaBroker));
-        try (JsonDeserializer<Person> jsonDeserializer = new JsonDeserializer<Person>().trustedPackages("*");
+        try (JsonDeserializer<Person> jsonDeserializer = new JsonDeserializer<Person>().trustedPackages("*").copyWithType(Person.class);
              Consumer<String, Person> consumer = new DefaultKafkaConsumerFactory<>(consumerConfigs, new StringDeserializer(), jsonDeserializer).createConsumer()) {
             consumer.subscribe(List.of("source-out-0"));
-            ConsumerRecord<String, Person> record = KafkaTestUtils.getSingleRecord(consumer, "source-out-0", Duration.ofSeconds(2));
-            Assertions.assertThat(record.value()).isEqualTo(Person.builder().firstname("ln").lastname("fn").build());
+            ConsumerRecords<String, Person> record = KafkaTestUtils.getRecords(consumer, Duration.ofSeconds(2));
+            Assertions.assertThat(record.records("source-out-0")).map(ConsumerRecord::value).contains(Person.builder().firstname("fn").lastname("ln").build());
+        }
+    }
+
+    @Test
+    public void testAppFunction() {
+        //Assert message
+        Map<String, Object> consumerConfigs = new HashMap<>(KafkaTestUtils.consumerProps("test", "false", embeddedKafkaBroker));
+        try (JsonDeserializer<Person> jsonDeserializer = new JsonDeserializer<Person>().trustedPackages("*").copyWithType(Person.class);
+             Consumer<String, Person> consumer = new DefaultKafkaConsumerFactory<>(consumerConfigs, new StringDeserializer(), jsonDeserializer).createConsumer()) {
+            consumer.subscribe(List.of("sink-in-0"));
+            ConsumerRecords<String, Person> record = KafkaTestUtils.getRecords(consumer, Duration.ofSeconds(2));
+            Assertions.assertThat(record.records("sink-in-0")).map(ConsumerRecord::value).contains(Person.builder().firstname("fn").lastname("LN").build());
         }
     }
 }
