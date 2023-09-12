@@ -35,6 +35,7 @@ public class PersonStream {
     @Bean
     public Consumer<Message<Person>> sink() {
         return m -> {
+            log.info("------ Consumed Record ------");
             log.info(m.getPayload().toString());
             m.getHeaders().forEach((key, value) -> log.info("{} : {}", key, value.toString()));
         };

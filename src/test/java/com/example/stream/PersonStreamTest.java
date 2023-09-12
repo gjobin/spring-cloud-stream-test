@@ -21,6 +21,9 @@ import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * Unit tests using the TestChannelBinderConfiguration
+ */
 public class PersonStreamTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
