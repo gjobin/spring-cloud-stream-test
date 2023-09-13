@@ -1,17 +1,16 @@
 package com.example.stream;
 
+import com.example.Application;
 import com.example.model.Person;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.WebApplicationType;
-import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.stream.binder.test.InputDestination;
 import org.springframework.cloud.stream.binder.test.OutputDestination;
 import org.springframework.cloud.stream.binder.test.TestChannelBinderConfiguration;
-import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.annotation.Import;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.support.GenericMessage;
@@ -24,29 +23,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Unit tests using the TestChannelBinderConfiguration
  */
+@SpringBootTest(classes = Application.class)
+@Import({TestChannelBinderConfiguration.class})
 public class PersonStreamUT {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private static ConfigurableApplicationContext context;
+    @Autowired
+    private InputDestination input;
 
-    private static InputDestination input;
-
-    private static OutputDestination output;
-
-    @BeforeAll
-    public static void beforeAll() {
-        context = new SpringApplicationBuilder(TestChannelBinderConfiguration.getCompleteConfiguration(PersonStream.class))
-                .web(WebApplicationType.NONE)
-                .run();
-
-        input = context.getBean(InputDestination.class);
-        output = context.getBean(OutputDestination.class);
-    }
-
-    @AfterAll
-    public static void afterAll() {
-        context.close();
-    }
+    @Autowired
+    private OutputDestination output;
 
     @BeforeEach
     public void beforeEach() {
